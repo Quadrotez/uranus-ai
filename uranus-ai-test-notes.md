@@ -123,3 +123,7 @@ A clean Gemini OpenAI-compatible catalog check returned 54 models. A free-tier s
 After the source audit, a fresh local stack on ports 5011/5012/8011 was started with no listeners beforehand. A local scripted OpenAI-compatible provider (no external inference and no cost) drove the actual API agent loop. The strict harness observed `completed`, one successful `workspace_mkdir`, exactly three successful writes to `site/index.html`, `site/styles.css` and `site/script.js`, a successful `terminal_exec`, and all five plan steps completed. The generated site was served over HTTP, opened by the Playwright worker, its CTA changed from `Activate Agent` to `Agent Activated`, and `artifacts/site.png` was written. Startup logs had no bind errors. The EXIT cleanup trap then stopped all service/provider processes; ports 5011, 5012, 8011, 4173, 4174 and 18083 were verified free afterward.
 
 The fresh screenshot was visually inspected at 1440x900. It shows a centered dark card, gradient `Uranus-AI` hero heading, local-agent copy, green active status and the changed `Agent Activated` CTA on a dark background. The page is legible and contains no external assets.
+
+## Published polish commit
+
+The validated polish changes were published to public GitHub in commit `4e60253` (`fix: harden agent workspace recovery and run validation`) on `main`.
