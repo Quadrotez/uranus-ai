@@ -20,7 +20,9 @@ docker compose up --build
 
 После запуска открой [http://localhost:5173](http://localhost:5173). Админка находится в разделе «Настройки». Для первого запуска local-first режим допускает дефолтный `ADMIN_TOKEN=change-me`; перед публикацией задай собственное значение и добавь reverse proxy/TLS. На Linux при нестандартном UID/GID владельца проекта замени `URANUS_UID` и `URANUS_GID` в `.env` значениями `id -u` и `id -g`.
 
-Все данные сохраняются в `./data`, код, который агент меняет, — в `./workspace`, а профиль изолированного браузера — в `./data/browser-profile`. Эти каталоги добавлены в `.gitignore`.
+Все данные сохраняются в `./data`, код, который агент меняет, — в `./workspace`, а профиль изолированного браузера — в `./data/browser-profile`. Эти каталоги добавлены в `.gitignore`. Перед sandbox/browser запускается одноразовый root-only `init-volumes`, который создаёт каталоги и передаёт их заданному non-root UID/GID; после завершения он больше не работает.
+
+Если на старой checkout-версии уже появился unhealthy browser, обнови код и пересоздай контейнеры: `git pull && docker compose down && docker compose up --build -d`. Для диагностики используй `docker compose logs browser init-volumes`; ожидаемое состояние — `Application startup complete` у browser и `healthy` у контейнера.
 
 ## Настройка моделей
 

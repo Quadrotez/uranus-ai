@@ -59,3 +59,7 @@
 - Branch: `main`
 - Commits: `6d514e4` (initial workspace) and `2c5dc4c` (provider/browser/setup hardening)
 - The working tree was clean after push, and the staged secret scan found no provider-key patterns.
+
+## Browser unhealthy fix regression
+
+The user-provided compose log showed that images built successfully but `uranus-browser-1` became unhealthy before API startup. The browser service had been forced to an arbitrary host UID/GID while its image created a different user, and bind-mounted profile/workspace directories could race with service startup. The compose fix adds a root-only one-shot `init-volumes` service, makes sandbox and browser wait for it, keeps API/web ordering intact, sets writable HOME/XDG cache paths for Playwright, and adds a 20-second browser healthcheck start period. A local runtime simulation with the same HOME/XDG/Playwright variables and system Chromium returned health `ok` and opened `https://example.com/` successfully.
