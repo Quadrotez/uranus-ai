@@ -11,7 +11,7 @@ services:
       - ./skills:/skills
     command: >-
       sh -ec 'mkdir -p /data/browser-profile /workspace /skills
-      && chown -R "$TARGET_UID:$TARGET_GID" /data /workspace /skills'
+      && chown -R "$$TARGET_UID:$$TARGET_GID" /data /workspace /skills'
     restart: "no"
 
   api:

@@ -63,3 +63,7 @@
 ## Browser unhealthy fix regression
 
 The user-provided compose log showed that images built successfully but `uranus-browser-1` became unhealthy before API startup. The browser service had been forced to an arbitrary host UID/GID while its image created a different user, and bind-mounted profile/workspace directories could race with service startup. The compose fix adds a root-only one-shot `init-volumes` service, makes sandbox and browser wait for it, keeps API/web ordering intact, sets writable HOME/XDG cache paths for Playwright, and adds a 20-second browser healthcheck start period. A local runtime simulation with the same HOME/XDG/Playwright variables and system Chromium returned health `ok` and opened `https://example.com/` successfully.
+
+## User-reported compose failure
+
+The follow-up log isolated the failure precisely. Compose printed `The "TARGET_UID" variable is not set` and `The "TARGET_GID" variable is not set`, then `init-volumes` exited with code 1. The dollar variables inside the YAML command were being interpolated by Compose on the host before the shell inside Alpine ran, so `chown` received empty values. The command now uses `$$TARGET_UID` and `$$TARGET_GID`, which Compose converts to literal shell variables for the container. No application or Chromium code was involved in this second failure.
