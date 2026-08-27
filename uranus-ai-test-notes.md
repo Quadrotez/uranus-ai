@@ -51,3 +51,11 @@
 ## Resilience regression
 
 - When the local browser process exited, the API→browser route initially surfaced an unhandled HTTP 500. The internal proxy now catches transport errors and returns structured `{ok:false,error:...}` JSON; this keeps the UI usable and makes a missing worker diagnosable.
+
+## Release state
+
+- Repository: https://github.com/Quadrotez/uranus-ai
+- Visibility: PUBLIC
+- Branch: `main`
+- Commits: `6d514e4` (initial workspace) and `2c5dc4c` (provider/browser/setup hardening)
+- The working tree was clean after push, and the staged secret scan found no provider-key patterns.
