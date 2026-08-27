@@ -1,0 +1,99 @@
+services:
+  api:
+    build:
+      context: ./api
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      DATA_DIR: /data
+      WORKSPACE_DIR: /workspace
+      SANDBOX_URL: http://sandbox:5001
+      BROWSER_URL: http://browser:5002
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+    volumes:
+      - ./data:/data
+      - ./workspace:/workspace
+      - ./skills:/skills:ro
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      sandbox:
+        condition: service_healthy
+      browser:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sandbox:
+    build:
+      context: ./sandbox
+    environment:
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      WORKSPACE_DIR: /workspace
+    volumes:
+      - ./workspace:/workspace
+    expose:
+      - "5001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+      - /home/uranus:size=128m,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 768m
+    cpus: 1.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  browser:
+    build:
+      context: ./browser
+    environment:
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      BROWSER_DATA_DIR: /browser-profile
+      WORKSPACE_DIR: /workspace
+    volumes:
+      - ./data/browser-profile:/browser-profile
+      - ./workspace:/workspace
+    expose:
+      - "5002"
+    shm_size: 1gb
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: 1.5
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5002/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:${API_PORT:-8000}
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes: {}
