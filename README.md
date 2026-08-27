@@ -28,6 +28,8 @@ docker compose up --build
 
 В админке открой карточку провайдера, задай ключ и при необходимости Base URL, нажми «Сохранить», затем «Модели». В чате модель имеет вид `provider:model`. OpenRouter, Groq, Gemini и Qwen используют OpenAI-compatible API. OpenCode Zen добавлен с публичным ключом по умолчанию, если endpoint сохраняет такую модель доступа. Ollama по умолчанию ожидается на `host.docker.internal:11434`; на Linux compose добавляет host-gateway. Claude имеет отдельный Anthropic Messages адаптер, а Claude через OpenRouter работает как обычный OpenAI-compatible provider.
 
+Для OpenCode Zen Uranus-AI выделяет бесплатные модели из live-каталога: `big-pickle`, `mimo-v2.5-free`, `hy3-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free` и `muse-spark-1.2-contributor-free`. Нажми «Модели» именно в карточке OpenCode Zen — free-модели появятся зелёным блоком и их можно выбрать кнопкой «Использовать». Список и временный статус free сверяй с [официальной документацией OpenCode Zen](https://opencode.ai/docs/zen/).
+
 ### Прокси для моделей
 
 У каждого провайдера в админке есть отдельное поле `Proxy`. Поддерживаются `http://`, `https://`, `socks5://` и `socks5h://`. Для короткой записи `127.0.0.1:10808` автоматически выбирается HTTP proxy, а для `127.0.0.1:9050` — SOCKS5. Можно указывать URL с basic-auth, например `http://user:password@127.0.0.1:8080`; путь, query и fragment запрещены. Пустое поле отключает proxy для этого провайдера.

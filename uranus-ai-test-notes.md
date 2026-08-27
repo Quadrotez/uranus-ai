@@ -89,3 +89,15 @@ A direct browser navigation to `http://127.0.0.1:5174/settings` rendered the Set
 ## Route regression verification
 
 In a live Vite preview, clicking Agent from `/settings` changed the browser URL to `/`, and clicking Settings changed it back to `/settings` while rendering the correct screen. Direct `/settings` entry also rendered correctly.
+
+## OpenCode Zen catalog investigation
+
+Official OpenCode Zen documentation (updated Aug 27, 2026) lists the free models Big Pickle, MiMo-V2.5 Free, Hy3 Free, Nemotron 3 Ultra Free, Nemotron 3.5 Lightning Free and Muse Spark 1.2 Contributor Free. It states that the catalog is available at `https://opencode.ai/zen/v1/models` and uses `opencode/<model-id>` model IDs. The live catalog returned HTTP 200 with model metadata but `pricing` was null for the returned items, so free status must be derived from the official free-ID list rather than assuming `pricing` is present.
+
+Reference: https://opencode.ai/docs/zen/
+
+## OpenCode free models and proxy transport verification
+
+The live `https://opencode.ai/zen/v1/models` endpoint returned 63 models and all 6 free IDs from the official Zen documentation: `big-pickle`, `mimo-v2.5-free`, `hy3-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free`, and `muse-spark-1.2-contributor-free`. Uranus-AI now marks these with `free=true`, sorts them before paid models, and exposes them as selectable chips in Settings after clicking Models.
+
+A local HTTP CONNECT proxy harness was used for an actual no-inference transport check. Uranus-AI requested only the OpenCode `/models` catalog through `http://127.0.0.1:18080`; the catalog returned 63 models/6 free models and the harness recorded one CONNECT hit. The user host ports `127.0.0.1:10808` and `127.0.0.1:9050` are not reachable from this sandbox, so those exact local proxies cannot be tested from here.

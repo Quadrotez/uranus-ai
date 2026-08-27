@@ -12,6 +12,16 @@ import httpx
 from .db import decrypt_secret, encrypt_secret, fetchall, fetchone, json_dump, now, execute
 
 
+OPENCODE_FREE_MODELS = {
+    "big-pickle",
+    "mimo-v2.5-free",
+    "hy3-free",
+    "nemotron-3-ultra-free",
+    "nemotron-3.5-lightning-free",
+    "muse-spark-1.2-contributor-free",
+}
+
+
 PRESETS = [
     {"id": "openrouter", "name": "OpenRouter", "kind": "openai", "base_url": "https://openrouter.ai/api/v1", "key_required": True},
     {"id": "groq", "name": "Groq", "kind": "openai", "base_url": "https://api.groq.com/openai/v1", "key_required": True},
@@ -197,10 +207,20 @@ async def list_models(provider_id: str) -> list[dict[str, Any]]:
             response = await client.get(f"{base}/models", headers=_headers(row))
             response.raise_for_status()
             data = response.json()
-            return [
-                {"id": item.get("id"), "name": item.get("name") or item.get("id"), "provider": provider_id, "context_length": item.get("context_length"), "pricing": item.get("pricing")}
-                for item in data.get("data", []) if item.get("id")
-            ]
+            models = []
+            for item in data.get("data", []):
+                model_id = item.get("id")
+                if not model_id:
+                    continue
+                models.append({
+                    "id": model_id,
+                    "name": item.get("name") or model_id,
+                    "provider": provider_id,
+                    "context_length": item.get("context_length"),
+                    "pricing": item.get("pricing"),
+                    "free": provider_id == "opencode" and model_id in OPENCODE_FREE_MODELS,
+                })
+            return sorted(models, key=lambda item: (not item["free"], item["name"].lower()))
     except httpx.HTTPStatusError as exc:
         raise ProviderError(f"{row['name']} /models: HTTP {exc.response.status_code}", exc.response.status_code) from exc
     except (httpx.HTTPError, ValueError) as exc:

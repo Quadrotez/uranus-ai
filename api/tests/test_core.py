@@ -34,6 +34,16 @@ class CoreContractTests(unittest.TestCase):
         ids = {item["id"] for item in PRESETS}
         self.assertTrue({"openrouter", "groq", "opencode", "gemini", "ollama", "qwen", "claude"}.issubset(ids))
 
+    def test_opencode_free_model_ids_are_explicit(self):
+        self.assertEqual(providers.OPENCODE_FREE_MODELS, {
+            "big-pickle",
+            "mimo-v2.5-free",
+            "hy3-free",
+            "nemotron-3-ultra-free",
+            "nemotron-3.5-lightning-free",
+            "muse-spark-1.2-contributor-free",
+        })
+
     def test_proxy_url_normalization_and_host_gateway(self):
         self.assertEqual(providers.normalize_proxy_url("127.0.0.1:10808"), "http://127.0.0.1:10808")
         self.assertEqual(providers.normalize_proxy_url("127.0.0.1:9050"), "socks5://127.0.0.1:9050")
