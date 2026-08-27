@@ -67,3 +67,7 @@ The user-provided compose log showed that images built successfully but `uranus-
 ## User-reported compose failure
 
 The follow-up log isolated the failure precisely. Compose printed `The "TARGET_UID" variable is not set` and `The "TARGET_GID" variable is not set`, then `init-volumes` exited with code 1. The dollar variables inside the YAML command were being interpolated by Compose on the host before the shell inside Alpine ran, so `chown` received empty values. The command now uses `$$TARGET_UID` and `$$TARGET_GID`, which Compose converts to literal shell variables for the container. No application or Chromium code was involved in this second failure.
+
+## Third compose failure diagnosis
+
+The next user log showed that `init-volumes` was fixed successfully, but both runtime services were still restarting. The browser log explicitly reported `/usr/bin/python: No module named uvicorn`. The sandbox Dockerfile had a separate hidden issue: it executed `python /app/server.py`, while that file only declares `app` and has no `uvicorn.run()` block, so the process exited immediately. Browser and sandbox now each install pinned FastAPI/Uvicorn/Pydantic dependencies; browser keeps its Playwright base, and sandbox starts with `python -m uvicorn server:app --host 0.0.0.0 --port 5001`. A local sandbox entrypoint simulation returned health `ok` and `sandbox-ok` from `/exec`.
