@@ -71,3 +71,7 @@ The follow-up log isolated the failure precisely. Compose printed `The "TARGET_U
 ## Third compose failure diagnosis
 
 The next user log showed that `init-volumes` was fixed successfully, but both runtime services were still restarting. The browser log explicitly reported `/usr/bin/python: No module named uvicorn`. The sandbox Dockerfile had a separate hidden issue: it executed `python /app/server.py`, while that file only declares `app` and has no `uvicorn.run()` block, so the process exited immediately. Browser and sandbox now each install pinned FastAPI/Uvicorn/Pydantic dependencies; browser keeps its Playwright base, and sandbox starts with `python -m uvicorn server:app --host 0.0.0.0 --port 5001`. A local sandbox entrypoint simulation returned health `ok` and `sandbox-ok` from `/exec`.
+
+## Fourth compose failure diagnosis
+
+The fourth user log showed the init container now succeeds and Uvicorn is installed, but two final runtime issues remained. Browser imported Uvicorn successfully but failed with `ModuleNotFoundError: No module named 'playwright'`; the Playwright base image did not expose the package to the interpreter used by the service, so `playwright==1.51.0` is now explicitly pinned in browser requirements. Sandbox reported `Could not import module "server"` because its working directory was `/workspace` while `server.py` lived in `/app`; its command now passes `--app-dir /app`. A local simulation from a non-app working directory returned sandbox health/exec success and browser health/open success.

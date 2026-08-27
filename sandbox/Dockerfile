@@ -21,4 +21,4 @@ USER uranus
 ENV HOME=/home/uranus
 WORKDIR /workspace
 EXPOSE 5001
-CMD ["python", "-m", "uvicorn", "server:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["python", "-m", "uvicorn", "--app-dir", "/app", "server:app", "--host", "0.0.0.0", "--port", "5001"]
