@@ -18,7 +18,7 @@ python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
 docker compose up --build
 ```
 
-После запуска открой [http://localhost:5173](http://localhost:5173). Админка находится в разделе «Настройки». Для первого запуска local-first режим допускает дефолтный `ADMIN_TOKEN=change-me`; перед публикацией задай собственное значение и добавь reverse proxy/TLS.
+После запуска открой [http://localhost:5173](http://localhost:5173). Админка находится в разделе «Настройки». Для первого запуска local-first режим допускает дефолтный `ADMIN_TOKEN=change-me`; перед публикацией задай собственное значение и добавь reverse proxy/TLS. На Linux при нестандартном UID/GID владельца проекта замени `URANUS_UID` и `URANUS_GID` в `.env` значениями `id -u` и `id -g`.
 
 Все данные сохраняются в `./data`, код, который агент меняет, — в `./workspace`, а профиль изолированного браузера — в `./data/browser-profile`. Эти каталоги добавлены в `.gitignore`.
 

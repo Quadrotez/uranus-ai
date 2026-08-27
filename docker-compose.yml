@@ -2,6 +2,7 @@ services:
   api:
     build:
       context: ./api
+    user: "${URANUS_UID:-1000}:${URANUS_GID:-1000}"
     environment:
       APP_ENV: ${APP_ENV:-development}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
@@ -31,6 +32,7 @@ services:
   sandbox:
     build:
       context: ./sandbox
+    user: "${URANUS_UID:-1000}:${URANUS_GID:-1000}"
     environment:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       WORKSPACE_DIR: /workspace
@@ -59,6 +61,7 @@ services:
   browser:
     build:
       context: ./browser
+    user: "${URANUS_UID:-1000}:${URANUS_GID:-1000}"
     environment:
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       BROWSER_DATA_DIR: /browser-profile
