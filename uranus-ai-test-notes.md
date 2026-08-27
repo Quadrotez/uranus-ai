@@ -75,3 +75,9 @@ The next user log showed that `init-volumes` was fixed successfully, but both ru
 ## Fourth compose failure diagnosis
 
 The fourth user log showed the init container now succeeds and Uvicorn is installed, but two final runtime issues remained. Browser imported Uvicorn successfully but failed with `ModuleNotFoundError: No module named 'playwright'`; the Playwright base image did not expose the package to the interpreter used by the service, so `playwright==1.51.0` is now explicitly pinned in browser requirements. Sandbox reported `Could not import module "server"` because its working directory was `/workspace` while `server.py` lived in `/app`; its command now passes `--app-dir /app`. A local simulation from a non-app working directory returned sandbox health/exec success and browser health/open success.
+
+## Provider proxy feature
+
+Provider settings now support per-provider HTTP/HTTPS/SOCKS5 proxies. Short forms `127.0.0.1:10808` and `127.0.0.1:9050` normalize to HTTP and SOCKS5 respectively. In bridge mode loopback proxy hosts are mapped to `PROXY_HOSTNAME` (default `host.docker.internal`); the optional Linux `docker-compose.host-proxy.yml` runs only API in host network so the API can reach a proxy bound strictly to host loopback, while sandbox/browser remain localhost-only published services. Proxy credentials are encrypted in SQLite; public provider rows expose no URL credentials and only a masked hint. Storage/encryption/host mapping smoke passed.
+
+A follow-up regression found and fixed a Python local-import shadowing bug when saving a proxy without changing the API key. All provider unit tests pass after the fix.

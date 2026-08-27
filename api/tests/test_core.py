@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
 from app.main import parse_model
+from app import providers
 from app.providers import PRESETS
 from app.tools import _canonical, _safe_rel, needs_approval, tool_specs
 
@@ -32,6 +33,22 @@ class CoreContractTests(unittest.TestCase):
     def test_requested_provider_presets_exist(self):
         ids = {item["id"] for item in PRESETS}
         self.assertTrue({"openrouter", "groq", "opencode", "gemini", "ollama", "qwen", "claude"}.issubset(ids))
+
+    def test_proxy_url_normalization_and_host_gateway(self):
+        self.assertEqual(providers.normalize_proxy_url("127.0.0.1:10808"), "http://127.0.0.1:10808")
+        self.assertEqual(providers.normalize_proxy_url("127.0.0.1:9050"), "socks5://127.0.0.1:9050")
+        self.assertIsNone(providers.normalize_proxy_url(""))
+        with self.assertRaises(providers.ProviderError):
+            providers.normalize_proxy_url("ftp://127.0.0.1:21")
+        previous = providers.PROXY_HOSTNAME
+        try:
+            providers.PROXY_HOSTNAME = "host.docker.internal"
+            self.assertEqual(providers._proxy({"proxy_url": "socks5://127.0.0.1:9050"}), "socks5://host.docker.internal:9050")
+            self.assertEqual(providers._proxy({"proxy_url": "http://user:secret@127.0.0.1:10808"}), "http://user:secret@host.docker.internal:10808")
+            self.assertEqual(providers._mask_proxy("http://user:secret@127.0.0.1:10808"), "http://127.0.0.1:10808")
+            self.assertEqual(providers._proxy({"proxy_url": "http://proxy.example:8080"}), "http://proxy.example:8080")
+        finally:
+            providers.PROXY_HOSTNAME = previous
 
 
 if __name__ == "__main__":

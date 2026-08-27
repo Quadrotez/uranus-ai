@@ -28,6 +28,12 @@ docker compose up --build
 
 В админке открой карточку провайдера, задай ключ и при необходимости Base URL, нажми «Сохранить», затем «Модели». В чате модель имеет вид `provider:model`. OpenRouter, Groq, Gemini и Qwen используют OpenAI-compatible API. OpenCode Zen добавлен с публичным ключом по умолчанию, если endpoint сохраняет такую модель доступа. Ollama по умолчанию ожидается на `host.docker.internal:11434`; на Linux compose добавляет host-gateway. Claude имеет отдельный Anthropic Messages адаптер, а Claude через OpenRouter работает как обычный OpenAI-compatible provider.
 
+### Прокси для моделей
+
+У каждого провайдера в админке есть отдельное поле `Proxy`. Поддерживаются `http://`, `https://`, `socks5://` и `socks5h://`. Для короткой записи `127.0.0.1:10808` автоматически выбирается HTTP proxy, а для `127.0.0.1:9050` — SOCKS5. Можно указывать URL с basic-auth, например `http://user:password@127.0.0.1:8080`; путь, query и fragment запрещены. Пустое поле отключает proxy для этого провайдера.
+
+В обычном bridge-режиме API-контейнер получает `host.docker.internal:host-gateway`, а proxy `127.0.0.1:10808` внутри настройки автоматически превращается в `http://host.docker.internal:10808`. Это подходит для Docker Desktop и для host proxy, доступного через gateway. Если на Linux proxy слушает строго только host loopback (`127.0.0.1`), запускай специальный overlay: `docker compose -f docker-compose.yml -f docker-compose.host-proxy.yml down --remove-orphans && docker compose -f docker-compose.yml -f docker-compose.host-proxy.yml up --build -d`. В этом режиме только API работает с `network_mode: host`, видит настоящий `127.0.0.1` хоста, а sandbox и browser доступны снаружи только на `127.0.0.1:5001/5002`. Для Tor SOCKS5 на `127.0.0.1:9050` используется тот же overlay. Доступ к host network не выдаётся sandbox/browser. Если Docker engine не поддерживает `host-gateway`, задай в `.env` `PROXY_HOSTNAME` на адрес docker bridge или адрес хоста, доступный из контейнера.
+
 Uranus-AI не делает скрытый fallback на другую модель и не знает, платная модель или бесплатная. Перед тестированием выбери модель с нулевой стоимостью или локальную Ollama-модель и проверь, что в админке указан именно этот ID. В проекте не зашиты пользовательские ключи.
 
 ## Безопасность

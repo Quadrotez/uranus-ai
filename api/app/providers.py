@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from .db import decrypt_secret, fetchall, fetchone, json_dump, now, execute
+from .db import decrypt_secret, encrypt_secret, fetchall, fetchone, json_dump, now, execute
 
 
 PRESETS = [
@@ -28,6 +30,10 @@ class ProviderChunk:
     done: bool = False
 
 
+PROXY_HOSTNAME = os.getenv("PROXY_HOSTNAME", "").strip()
+SUPPORTED_PROXY_SCHEMES = {"http", "https", "socks5", "socks5h"}
+
+
 class ProviderError(RuntimeError):
     def __init__(self, message: str, status_code: int | None = None):
         self.status_code = status_code
@@ -42,12 +48,36 @@ def seed_presets() -> None:
         )
 
 
+def _stored_proxy(row: dict[str, Any]) -> str | None:
+    stored = row.get("proxy_url")
+    if not stored:
+        return None
+    return decrypt_secret(stored) or str(stored)
+
+
+def _mask_proxy(value: str | None) -> str | None:
+    if not value:
+        return None
+    parsed = urlsplit(value)
+    host = parsed.hostname or ""
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    authority = host
+    if parsed.port:
+        authority = f"{authority}:{parsed.port}"
+    return urlunsplit((parsed.scheme, authority, "", "", ""))
+
+
 def provider_rows() -> list[dict[str, Any]]:
     rows = fetchall("SELECT id,name,kind,base_url,proxy_url,enabled,last_status,last_checked FROM providers ORDER BY name")
     for row in rows:
         row["enabled"] = bool(row["enabled"])
         secret_row = fetchone("SELECT api_key FROM providers WHERE id=?", (row["id"],)) or {}
+        proxy = _stored_proxy(row)
         row["key_configured"] = bool(secret_row.get("api_key"))
+        row["proxy_configured"] = bool(proxy)
+        row["proxy_hint"] = _mask_proxy(proxy)
+        row["proxy_url"] = None
     return rows
 
 
@@ -55,6 +85,7 @@ def provider_row(provider_id: str) -> dict[str, Any]:
     row = fetchone("SELECT * FROM providers WHERE id=?", (provider_id,))
     if not row:
         raise ProviderError(f"Провайдер не найден: {provider_id}")
+    row["proxy_url"] = _stored_proxy(row)
     return row
 
 
@@ -79,12 +110,11 @@ def save_provider(provider_id: str, payload: dict[str, Any]) -> None:
         values.append(str(payload["base_url"]).strip().rstrip("/"))
     if "proxy_url" in payload:
         assignments.append("proxy_url=?")
-        values.append(str(payload["proxy_url"]).strip() or None)
+        values.append(encrypt_secret(normalize_proxy_url(payload["proxy_url"])))
     if "enabled" in payload:
         assignments.append("enabled=?")
         values.append(1 if payload["enabled"] else 0)
     if payload.get("api_key") is not None:
-        from .db import encrypt_secret
         assignments.append("api_key=?")
         values.append(encrypt_secret(str(payload["api_key"]).strip()) if str(payload["api_key"]).strip() else None)
     if assignments:
@@ -103,9 +133,39 @@ def _headers(row: dict[str, Any]) -> dict[str, str]:
     return headers
 
 
+def normalize_proxy_url(value: str | None) -> str | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    if "://" not in raw:
+        port = raw.rsplit(":", 1)[-1]
+        scheme = "socks5" if port in {"9050", "9150"} else "http"
+        raw = f"{scheme}://{raw}"
+    parsed = urlsplit(raw)
+    if parsed.scheme.lower() not in SUPPORTED_PROXY_SCHEMES:
+        raise ProviderError("Прокси должен использовать http://, https://, socks5:// или socks5h://")
+    if not parsed.hostname or parsed.port is None:
+        raise ProviderError("Прокси должен содержать hostname и port, например socks5://127.0.0.1:9050")
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise ProviderError("URL прокси не должен содержать path, query или fragment")
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc, "", "", ""))
+
+
 def _proxy(row: dict[str, Any]) -> str | None:
-    value = (row.get("proxy_url") or "").strip()
-    return value or None
+    value = normalize_proxy_url(row.get("proxy_url"))
+    if not value:
+        return None
+    if not PROXY_HOSTNAME:
+        return value
+    parsed = urlsplit(value)
+    if parsed.hostname not in {"127.0.0.1", "localhost", "::1"}:
+        return value
+    host = PROXY_HOSTNAME
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    credentials = f"{parsed.netloc.rsplit('@', 1)[0]}@" if "@" in parsed.netloc else ""
+    netloc = f"{credentials}{host}:{parsed.port}"
+    return urlunsplit((parsed.scheme, netloc, "", "", ""))
 
 
 def _ensure_configured(row: dict[str, Any]) -> None:

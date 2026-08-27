@@ -127,8 +127,8 @@ async def put_provider(provider_id: str, body: ProviderUpdate, _: None = Depends
     try:
         providers.save_provider(provider_id, body.model_dump(exclude_unset=True))
         return {"ok": True, "provider": next(item for item in providers.provider_rows() if item["id"] == provider_id)}
-    except (ProviderError, StopIteration) as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ProviderError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/providers/{provider_id}/models")

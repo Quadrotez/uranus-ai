@@ -1,0 +1,20 @@
+# Optional Linux overlay for proxies bound only to host loopback (127.0.0.1).
+# Start with:
+# docker compose -f docker-compose.yml -f docker-compose.host-proxy.yml up --build -d
+services:
+  api:
+    network_mode: host
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"]
+    environment:
+      SANDBOX_URL: http://127.0.0.1:5001
+      BROWSER_URL: http://127.0.0.1:5002
+      PROXY_HOSTNAME: ""
+    ports: !reset []
+
+  sandbox:
+    ports:
+      - "127.0.0.1:5001:5001"
+
+  browser:
+    ports:
+      - "127.0.0.1:5002:5002"
