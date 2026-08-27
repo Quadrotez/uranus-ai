@@ -81,3 +81,11 @@ The fourth user log showed the init container now succeeds and Uvicorn is instal
 Provider settings now support per-provider HTTP/HTTPS/SOCKS5 proxies. Short forms `127.0.0.1:10808` and `127.0.0.1:9050` normalize to HTTP and SOCKS5 respectively. In bridge mode loopback proxy hosts are mapped to `PROXY_HOSTNAME` (default `host.docker.internal`); the optional Linux `docker-compose.host-proxy.yml` runs only API in host network so the API can reach a proxy bound strictly to host loopback, while sandbox/browser remain localhost-only published services. Proxy credentials are encrypted in SQLite; public provider rows expose no URL credentials and only a masked hint. Storage/encryption/host mapping smoke passed.
 
 A follow-up regression found and fixed a Python local-import shadowing bug when saving a proxy without changing the API key. All provider unit tests pass after the fix.
+
+## Settings route verification
+
+A direct browser navigation to `http://127.0.0.1:5174/settings` rendered the Settings screen and kept the URL at `/settings`; the new History API route works. The temporary frontend-only preview showed `Failed to fetch` because no API was running on its default `localhost:8000`, not because the settings route or API endpoints were missing.
+
+## Route regression verification
+
+In a live Vite preview, clicking Agent from `/settings` changed the browser URL to `/`, and clicking Settings changed it back to `/settings` while rendering the correct screen. Direct `/settings` entry also rendered correctly.

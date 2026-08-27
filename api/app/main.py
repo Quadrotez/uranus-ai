@@ -136,7 +136,7 @@ async def get_models(provider_id: str, _: None = Depends(require_admin)) -> list
     try:
         return await providers.list_models(provider_id)
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=f"Uranus endpoint существует, но запрос к провайдеру не выполнен: {exc}") from exc
 
 
 @app.post("/api/providers/{provider_id}/test")
@@ -144,7 +144,7 @@ async def test_model_provider(provider_id: str, model: str | None = Query(defaul
     try:
         return await providers.test_provider(provider_id, model)
     except ProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=f"Uranus endpoint существует, но проверка провайдера не выполнена: {exc}") from exc
 
 
 @app.get("/api/skills")

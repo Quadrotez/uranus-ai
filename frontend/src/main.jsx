@@ -4,6 +4,13 @@ import "./styles.css";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const ADMIN_TOKEN = () => localStorage.getItem("uranus_admin_token") || "";
+const VIEW_PATHS = { chat: "/", computer: "/computer", admin: "/settings" };
+
+function viewFromPath(pathname) {
+  if (pathname === "/settings" || pathname === "/settings/") return "admin";
+  if (pathname === "/computer" || pathname === "/computer/") return "computer";
+  return "chat";
+}
 
 async function request(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
@@ -11,7 +18,10 @@ async function request(path, options = {}) {
   if (token) headers["X-Admin-Token"] = token;
   const response = await fetch(`${API}${path}`, { ...options, headers });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.detail || body.error || `HTTP ${response.status}`);
+  if (!response.ok) {
+    const detail = body.detail || body.error || `HTTP ${response.status}`;
+    throw new Error(`${options.method || "GET"} ${path} → ${detail}`);
+  }
   return body;
 }
 
@@ -19,7 +29,7 @@ const shortJson = (value) => JSON.stringify(value, null, 2);
 const time = (value) => value ? new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
 
 function App() {
-  const [view, setView] = useState("chat");
+  const [view, setView] = useState(() => viewFromPath(window.location.pathname));
   const [conversations, setConversations] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -43,6 +53,20 @@ function App() {
   const [fileContent, setFileContent] = useState("");
   const [notice, setNotice] = useState("");
   const eventSource = useRef(null);
+
+  function navigate(nextView, replace = false) {
+    const path = VIEW_PATHS[nextView] || VIEW_PATHS.chat;
+    if (window.location.pathname !== path) {
+      window.history[replace ? "replaceState" : "pushState"]({}, "", path);
+    }
+    setView(nextView);
+  }
+
+  useEffect(() => {
+    const onPopState = () => setView(viewFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const activeProvider = useMemo(() => selectedModel.split(":")[0] || "", [selectedModel]);
 
@@ -76,7 +100,7 @@ function App() {
       setMessages(data.messages || []);
       setDraft("");
       setRunEvents([]);
-      setView("chat");
+      navigate("chat");
     } catch (error) { showNotice(error.message); }
   }
 
@@ -109,7 +133,7 @@ function App() {
     setApprovals([]);
     setDraft("");
     setStreaming(false);
-    setView("chat");
+    navigate("chat");
   }
 
   async function sendPrompt(event) {
@@ -117,7 +141,7 @@ function App() {
     if (!prompt.trim() || streaming) return;
     if (!selectedModel) {
       showNotice("Сначала выбери модель в верхней панели или настрой провайдера в админке.");
-      setView("admin");
+      navigate("admin");
       return;
     }
     const text = prompt.trim();
@@ -258,9 +282,9 @@ function App() {
         <div className="brand"><span className="brand-mark">U</span><span>Uranus<span className="brand-accent">-AI</span></span><span className="version">0.1</span></div>
         <button className="new-task" onClick={newTask}><span>＋</span> Новая задача</button>
         <nav className="main-nav">
-          <button className={view === "chat" ? "nav-item active" : "nav-item"} onClick={() => setView("chat")}><span>◈</span> Агент</button>
-          <button className={view === "computer" ? "nav-item active" : "nav-item"} onClick={() => setView("computer")}><span>▣</span> Computer</button>
-          <button className={view === "admin" ? "nav-item active" : "nav-item"} onClick={() => setView("admin")}><span>⚙</span> Настройки</button>
+          <button className={view === "chat" ? "nav-item active" : "nav-item"} onClick={() => navigate("chat")}><span>◈</span> Агент</button>
+          <button className={view === "computer" ? "nav-item active" : "nav-item"} onClick={() => navigate("computer")}><span>▣</span> Computer</button>
+          <button className={view === "admin" ? "nav-item active" : "nav-item"} onClick={() => navigate("admin")}><span>⚙</span> Настройки</button>
         </nav>
         <div className="sidebar-label">ИСТОРИЯ</div>
         <div className="conversation-list">
@@ -282,7 +306,7 @@ function App() {
             </label>
             {activeProvider && <button className="icon-button" title="Обновить модели" onClick={() => loadModels(activeProvider)}>↻</button>}
             {streaming && <button className="stop-button" onClick={stopRun}>Остановить</button>}
-            <button className="avatar" onClick={() => setView("admin")}>G</button>
+            <button className="avatar" onClick={() => navigate("admin")}>G</button>
           </div>
         </header>
 
