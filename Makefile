@@ -14,5 +14,6 @@ build:
 
 test:
 	python3 -m unittest discover -s api/tests -v
+	python3 -m unittest discover -s sandbox/tests -v
 	python3 -m py_compile api/app/*.py sandbox/server.py browser/server.py
 	cd frontend && npm ci --no-audit --no-fund && npm run build

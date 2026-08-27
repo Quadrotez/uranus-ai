@@ -57,8 +57,8 @@
 - Repository: https://github.com/Quadrotez/uranus-ai
 - Visibility: PUBLIC
 - Branch: `main`
-- Commits: `6d514e4` (initial workspace) and `2c5dc4c` (provider/browser/setup hardening)
-- The working tree was clean after push, and the staged secret scan found no provider-key patterns.
+- Public baseline before this polish pass: `7072c3c` (`feat: expose opencode free models and proxy checks`).
+- The working tree at that baseline was clean, and the staged secret scan found no provider-key patterns.
 
 ## Browser unhealthy fix regression
 
@@ -101,3 +101,25 @@ Reference: https://opencode.ai/docs/zen/
 The live `https://opencode.ai/zen/v1/models` endpoint returned 63 models and all 6 free IDs from the official Zen documentation: `big-pickle`, `mimo-v2.5-free`, `hy3-free`, `nemotron-3-ultra-free`, `nemotron-3.5-lightning-free`, and `muse-spark-1.2-contributor-free`. Uranus-AI now marks these with `free=true`, sorts them before paid models, and exposes them as selectable chips in Settings after clicking Models.
 
 A local HTTP CONNECT proxy harness was used for an actual no-inference transport check. Uranus-AI requested only the OpenCode `/models` catalog through `http://127.0.0.1:18080`; the catalog returned 63 models/6 free models and the harness recorded one CONNECT hit. The user host ports `127.0.0.1:10808` and `127.0.0.1:9050` are not reachable from this sandbox, so those exact local proxies cannot be tested from here.
+
+## Overnight website-generation victory
+
+A free OpenRouter model (`cohere/north-mini-code:free`) created `workspace/site/index.html`, `styles.css`, and `script.js` through the Uranus-AI agent loop. The first attempt exposed a real sandbox bug: a malformed empty write to `site` created a file instead of a directory, causing later writes to 500. The sandbox was rewritten with `workspace.mkdir`, structured filesystem errors, and a directory-like empty-write guard; the second attempt recovered and completed all writes plus terminal verification.
+
+The generated site was served locally, opened in Chromium, and visually inspected. The browser rendered the Uranus-AI hero, features, system status and CTA. Clicking `Activate Agent` changed the button to `Agent Activated` and the status text to `Agent is now running autonomous operations...`, confirming the generated JavaScript works. `node --check` passed and the site contained no external resource references.
+
+The agent run reached the configured 10-step safety limit after successful file creation and verification rather than emitting a final answer, but the artifact and browser verification succeeded. This is a successful creation pipeline with a remaining polish item: better plan-step updates and finalization before the step limit.
+
+## Free-provider limits during overnight run
+
+A clean run with the updated sandbox and agent prompt succeeded through `workspace.mkdir`, `index.html` and `styles.css` writes, plan updates and recovery-aware tool use. The run stopped before `script.js` because OpenRouter returned HTTP 429 `free-models-per-day` with `X-RateLimit-Remaining: 0`. No paid request was made; this was an upstream free-tier quota exhaustion, not an Uranus-AI filesystem or gateway failure. The earlier run had already produced all three files and a browser-verified site.
+
+## Gemini empty-response regression
+
+A clean Gemini OpenAI-compatible catalog check returned 54 models. A free-tier smoke with `gemini-2.5-flash-lite` reached the API successfully and executed `plan_create`, but the second provider response contained neither text nor tool calls. Before the follow-up fix, Uranus-AI incorrectly recorded this as `completed` with pending plan steps. The agent loop now raises a provider error for an empty response without tool calls, preventing silent success. The model-specific behavior is retained as a limitation; no paid fallback is used.
+
+## Strict clean pipeline regression
+
+After the source audit, a fresh local stack on ports 5011/5012/8011 was started with no listeners beforehand. A local scripted OpenAI-compatible provider (no external inference and no cost) drove the actual API agent loop. The strict harness observed `completed`, one successful `workspace_mkdir`, exactly three successful writes to `site/index.html`, `site/styles.css` and `site/script.js`, a successful `terminal_exec`, and all five plan steps completed. The generated site was served over HTTP, opened by the Playwright worker, its CTA changed from `Activate Agent` to `Agent Activated`, and `artifacts/site.png` was written. Startup logs had no bind errors. The EXIT cleanup trap then stopped all service/provider processes; ports 5011, 5012, 8011, 4173, 4174 and 18083 were verified free afterward.
+
+The fresh screenshot was visually inspected at 1440x900. It shows a centered dark card, gradient `Uranus-AI` hero heading, local-agent copy, green active status and the changed `Agent Activated` CTA on a dark background. The page is legible and contains no external assets.

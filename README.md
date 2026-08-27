@@ -6,7 +6,7 @@ Uranus-AI — открытая self-hosted агентская рабочая с�
 
 В репозитории есть Docker Compose-стек с четырьмя контейнерами: FastAPI API, изолированный sandbox, Playwright browser worker и React/Vite web-панель. Пользователь может выбрать модель, включить OpenRouter/Groq/OpenCode Zen/Gemini/Ollama/Qwen/Claude или совместимый endpoint, загрузить список моделей, протестировать провайдера, вести историю запусков и менять настройки из панели.
 
-Агентский цикл поддерживает планы, SSE-стриминг текста, native tool calling для OpenAI-compatible API, Anthropic tool blocks, Ollama chat API, JSON-совместимые результаты инструментов, approvals, остановку запуска и лимит шагов. Workspace-инструменты ограничены смонтированной папкой. Terminal выполняется от non-root пользователя внутри sandbox-контейнера с таймаутом и лимитом вывода. Browser worker использует отдельный persistent Playwright-профиль и не получает cookies host-браузера.
+Агентский цикл поддерживает планы, SSE-стриминг текста, native tool calling для OpenAI-compatible API, Anthropic tool blocks, Ollama chat API, JSON-совместимые результаты инструментов, approvals, остановку запуска и лимит шагов. Workspace-инструменты ограничены смонтированной папкой: каталоги создаются отдельным `workspace.mkdir`, а пустая запись в путь, похожий на каталог, возвращает recovery-подсказку вместо создания ошибочного файла. Если провайдер возвращает пустой ответ без tool calls, запуск помечается ошибкой, а не ложным `completed`. Terminal выполняется от non-root пользователя внутри sandbox-контейнера с таймаутом и лимитом вывода. Browser worker использует отдельный persistent Playwright-профиль и не получает cookies host-браузера.
 
 ## Быстрый запуск
 

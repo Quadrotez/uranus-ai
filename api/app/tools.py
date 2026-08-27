@@ -19,6 +19,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"type": "function", "function": {"name": "plan.create", "description": "Create an execution plan with short ordered steps.", "parameters": {"type": "object", "properties": {"steps": {"type": "array", "items": {"type": "string"}}}, "required": ["steps"]}}},
     {"type": "function", "function": {"name": "plan.update", "description": "Mark a plan step as running, completed or failed.", "parameters": {"type": "object", "properties": {"step_no": {"type": "integer"}, "status": {"type": "string", "enum": ["pending", "running", "completed", "failed"]}}, "required": ["step_no", "status"]}}},
     {"type": "function", "function": {"name": "workspace.list", "description": "List files under the workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string", "default": "."}}}}},
+    {"type": "function", "function": {"name": "workspace.mkdir", "description": "Create a directory in the workspace. Use this for directories; never use workspace.write with a directory path.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}}},
     {"type": "function", "function": {"name": "workspace.read", "description": "Read a UTF-8 text file from the workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "max_chars": {"type": "integer", "default": 20000}}, "required": ["path"]}}},
     {"type": "function", "function": {"name": "workspace.write", "description": "Write a complete UTF-8 file in the workspace.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"]}}},
     {"type": "function", "function": {"name": "workspace.patch", "description": "Apply a unified diff to files in the workspace.", "parameters": {"type": "object", "properties": {"patch": {"type": "string"}}, "required": ["patch"]}}},
@@ -42,7 +43,7 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {"type": "function", "function": {"name": "artifact.present", "description": "Mark a workspace file as an output artifact for the user.", "parameters": {"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}}},
 ]
 
-APPROVAL_TOOLS = {"terminal.exec", "project.test", "workspace.write", "workspace.patch", "workspace.delete", "browser.click", "browser.type", "browser.press", "browser.screenshot", "artifact.present"}
+APPROVAL_TOOLS = {"terminal.exec", "project.test", "workspace.mkdir", "workspace.write", "workspace.patch", "workspace.delete", "browser.click", "browser.type", "browser.press", "browser.screenshot", "artifact.present"}
 
 
 def _canonical(name: str) -> str:
@@ -134,6 +135,8 @@ async def execute_tool(run_id: int, name: str, args: dict[str, Any]) -> dict[str
         return {"ok": True}
     if name == "workspace.list":
         return await _internal_post(SANDBOX_URL, "/list", {"path": _safe_rel(args.get("path", "."))})
+    if name == "workspace.mkdir":
+        return await _internal_post(SANDBOX_URL, "/mkdir", {"path": _safe_rel(args.get("path", "."))})
     if name in {"workspace.read", "workspace.write", "workspace.delete"}:
         payload = {"path": _safe_rel(args.get("path", "."))}
         if name == "workspace.read":

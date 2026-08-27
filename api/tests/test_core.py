@@ -22,11 +22,13 @@ class CoreContractTests(unittest.TestCase):
     def test_external_tool_names_are_provider_safe(self):
         names = [item["function"]["name"] for item in tool_specs()]
         self.assertIn("terminal_exec", names)
+        self.assertIn("workspace_mkdir", names)
         self.assertNotIn("terminal.exec", names)
         self.assertEqual(_canonical("terminal_exec"), "terminal.exec")
 
     def test_approval_policy(self):
         self.assertTrue(needs_approval("terminal_exec", "ask"))
+        self.assertTrue(needs_approval("workspace_mkdir", "ask"))
         self.assertFalse(needs_approval("workspace_read", "ask"))
         self.assertFalse(needs_approval("terminal_exec", "always_allow"))
 
